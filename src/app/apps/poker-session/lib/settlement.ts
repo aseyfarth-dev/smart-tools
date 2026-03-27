@@ -36,7 +36,9 @@ export function calculateSettlements(
     (p) => ({
       name: p.name,
       balance: roundCents(
-        (p.cashout?.chip_count ?? 0) - p.totalBuyins + p.cashPaid
+        Number(p.cashout?.chip_count ?? 0) -
+          Number(p.totalBuyins) +
+          Number(p.cashPaid)
       ),
     })
   );

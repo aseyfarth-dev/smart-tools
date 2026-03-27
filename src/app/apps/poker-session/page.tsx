@@ -82,18 +82,19 @@ export default async function PokerSessionPage() {
 
   // Aggregate player details
   const playersWithDetails: PlayerWithDetails[] = players.map((player) => {
-    const playerBuyins = buyins.filter((b) => b.player_id === player.id);
-    const totalBuyins = playerBuyins.reduce(
-      (sum, b) => sum + Number(b.amount),
-      0
-    );
+    const playerBuyins = buyins
+      .filter((b) => b.player_id === player.id)
+      .map((b) => ({ ...b, amount: Number(b.amount) }));
+    const totalBuyins = playerBuyins.reduce((sum, b) => sum + b.amount, 0);
     const cashPaid = playerBuyins
       .filter((b) => b.paid_cash)
-      .reduce((sum, b) => sum + Number(b.amount), 0);
-    const playerCashout =
-      cashouts.find((c) => c.player_id === player.id) ?? null;
+      .reduce((sum, b) => sum + b.amount, 0);
+    const rawCashout = cashouts.find((c) => c.player_id === player.id) ?? null;
+    const playerCashout = rawCashout
+      ? { ...rawCashout, chip_count: Number(rawCashout.chip_count) }
+      : null;
     const netResult = playerCashout
-      ? Number(playerCashout.chip_count) - totalBuyins
+      ? playerCashout.chip_count - totalBuyins
       : null;
 
     return {

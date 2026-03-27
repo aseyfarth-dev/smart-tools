@@ -37,6 +37,7 @@ export function SettlementSection({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [newRoundOpen, setNewRoundOpen] = useState(false);
+  const [endSessionOpen, setEndSessionOpen] = useState(false);
 
   const allCashedOut =
     players.length > 0 &&
@@ -63,13 +64,14 @@ export function SettlementSection({
     });
   }
 
-  function handleNewRound() {
+  function handleEndSession() {
     startTransition(async () => {
       const result = await settleSession(sessionId);
       if (result.success) {
         setNewRoundOpen(false);
+        setEndSessionOpen(false);
       } else {
-        setError(result.error ?? "Failed to settle session");
+        setError(result.error ?? "Failed to end session");
       }
     });
   }
@@ -180,7 +182,7 @@ export function SettlementSection({
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        {/* New Round */}
+        {/* New Round — shown when all settlements are completed */}
         {allSettled && (
           <div className="mt-2 border-t border-border pt-3">
             <Dialog open={newRoundOpen} onOpenChange={setNewRoundOpen}>
@@ -204,11 +206,50 @@ export function SettlementSection({
                     Cancel
                   </DialogClose>
                   <Button
-                    onClick={handleNewRound}
+                    onClick={handleEndSession}
                     disabled={isPending}
                     variant="default"
                   >
                     {isPending ? "Settling..." : "Confirm"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
+
+        {/* End Session — always available */}
+        {!allSettled && (
+          <div className="mt-2 border-t border-border pt-3">
+            <Dialog open={endSessionOpen} onOpenChange={setEndSessionOpen}>
+              <DialogTrigger
+                render={
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                  />
+                }
+              >
+                End Session
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>End Session?</DialogTitle>
+                  <DialogDescription>
+                    This will close the current session. Any unsettled balances
+                    will not be tracked. You can start a new session afterwards.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="outline" />}>
+                    Cancel
+                  </DialogClose>
+                  <Button
+                    onClick={handleEndSession}
+                    disabled={isPending}
+                    variant="destructive"
+                  >
+                    {isPending ? "Ending..." : "End Session"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
