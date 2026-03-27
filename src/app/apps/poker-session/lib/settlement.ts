@@ -43,6 +43,15 @@ export function calculateSettlements(
     })
   );
 
+  // If any cash was paid to the bank, the bank holds that money and needs
+  // to pay it out to creditors. Add "Bank" as a virtual debtor.
+  const totalCashPaid = roundCents(
+    cashedOutPlayers.reduce((sum, p) => sum + Number(p.cashPaid), 0)
+  );
+  if (totalCashPaid > 0.005) {
+    balances.push({ name: "Bank", balance: -totalCashPaid });
+  }
+
   // Separate into creditors and debtors
   const creditors = balances
     .filter((b) => b.balance > 0.005) // use small epsilon for float comparison
