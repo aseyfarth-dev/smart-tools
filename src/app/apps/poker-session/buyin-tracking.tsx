@@ -64,6 +64,8 @@ export function BuyinTracking({ players }: BuyinTrackingProps) {
     );
   }
 
+  const totalCashInBank = players.reduce((sum, p) => sum + p.cashPaid, 0);
+
   const formatAmount = (val: number) =>
     val.toLocaleString("en-US", {
       minimumFractionDigits: 2,
@@ -174,6 +176,16 @@ export function BuyinTracking({ players }: BuyinTrackingProps) {
             </div>
           ))}
         </div>
+
+        {/* Bank balance summary */}
+        {totalCashInBank > 0 && (
+          <div className="rounded-lg border border-border bg-muted/50 p-3 flex items-center justify-between">
+            <span className="text-sm font-medium">Bank balance</span>
+            <span className="text-sm font-semibold">
+              {formatAmount(totalCashInBank)}
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

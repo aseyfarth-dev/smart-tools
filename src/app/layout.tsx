@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "My Apps",
+  title: "My Smart Tools",
   description: "Personal app ecosystem",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "My Apps",
+    title: "My Smart Tools",
   },
 };
 

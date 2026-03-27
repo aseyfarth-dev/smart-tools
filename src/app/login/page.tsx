@@ -39,7 +39,7 @@ export default function LoginPage() {
     <div className="flex-1 flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-center">My Apps</CardTitle>
+          <CardTitle className="text-center">My Smart Tools</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">

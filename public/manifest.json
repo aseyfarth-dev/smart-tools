@@ -1,6 +1,6 @@
 {
-  "name": "My Apps",
-  "short_name": "My Apps",
+  "name": "My Smart Tools",
+  "short_name": "Smart Tools",
   "description": "Personal app ecosystem",
   "start_url": "/",
   "display": "standalone",

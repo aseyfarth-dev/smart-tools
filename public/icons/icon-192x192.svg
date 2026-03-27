@@ -1,4 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="32" fill="#0a0a0a"/>
-  <text x="96" y="110" font-family="system-ui, sans-serif" font-size="80" font-weight="700" fill="#fafafa" text-anchor="middle">MA</text>
+  <rect width="192" height="192" rx="40" fill="#0a0a0a"/>
+  <!-- Gear icon accent -->
+  <g transform="translate(96, 38)" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="0" cy="0" r="6" />
+    <path d="M0-12v3M0 9v3M-12 0h3M9 0h3M-8.5-8.5l2.1 2.1M6.4 6.4l2.1 2.1M8.5-8.5l-2.1 2.1M-6.4 6.4l-2.1 2.1"/>
+  </g>
+  <!-- "Smart" text -->
+  <text x="96" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="700" fill="#fafafa" text-anchor="middle" letter-spacing="2">Smart</text>
+  <!-- "Tools" text -->
+  <text x="96" y="140" font-family="system-ui, -apple-system, sans-serif" font-size="42" font-weight="300" fill="#a1a1aa" text-anchor="middle" letter-spacing="4">Tools</text>
 </svg>
