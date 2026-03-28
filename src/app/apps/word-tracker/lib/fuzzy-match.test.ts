@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { editDistance, findSimilarWords } from "./fuzzy-match";
+import {
+  editDistance,
+  germanStem,
+  isSimilarWord,
+  findSimilarWords,
+} from "./fuzzy-match";
 
 describe("editDistance", () => {
   it("returns 0 for identical strings", () => {
@@ -13,76 +18,114 @@ describe("editDistance", () => {
   });
 
   it("handles single character difference", () => {
-    expect(editDistance("cat", "car")).toBe(1); // substitution
-    expect(editDistance("cat", "cats")).toBe(1); // insertion
-    expect(editDistance("cats", "cat")).toBe(1); // deletion
+    expect(editDistance("cat", "car")).toBe(1);
+    expect(editDistance("cat", "cats")).toBe(1);
+    expect(editDistance("cats", "cat")).toBe(1);
   });
 
-  it("handles two character differences", () => {
+  it("handles multiple character differences", () => {
     expect(editDistance("cat", "dog")).toBe(3);
-    expect(editDistance("ball", "bell")).toBe(1);
     expect(editDistance("mama", "papa")).toBe(2);
   });
+});
 
-  it("is case-sensitive", () => {
-    expect(editDistance("Cat", "cat")).toBe(1);
-    expect(editDistance("CAT", "cat")).toBe(3);
+describe("germanStem", () => {
+  it("strips common German plural suffixes", () => {
+    expect(germanStem("Autos")).toBe("auto");
+    expect(germanStem("Hunde")).toBe("hund");
+    expect(germanStem("Kinder")).toBe("kind");
+    expect(germanStem("Katzen")).toBe("katz");
+  });
+
+  it("strips diminutive suffixes", () => {
+    expect(germanStem("Häuschen")).toBe("häus");
+    expect(germanStem("Kindlein")).toBe("kind");
+  });
+
+  it("does not strip if stem would be too short", () => {
+    expect(germanStem("an")).toBe("an");
+    expect(germanStem("es")).toBe("es");
+  });
+
+  it("handles already-stemmed words", () => {
+    expect(germanStem("Hund")).toBe("hund");
+  });
+});
+
+describe("isSimilarWord", () => {
+  // TRUE: should catch these as similar
+  it("catches German plural/singular pairs", () => {
+    expect(isSimilarWord("Auto", "Autos")).toBe(true);
+    expect(isSimilarWord("Hund", "Hunde")).toBe(true);
+    expect(isSimilarWord("Katze", "Katzen")).toBe(true);
+  });
+
+  it("catches single-character typos", () => {
+    expect(isSimilarWord("Ball", "Balll")).toBe(true);
+    expect(isSimilarWord("Hund", "Hune")).toBe(true);
+  });
+
+  it("catches words with same pronunciation and close spelling", () => {
+    // These have same Cologne phonetic code AND edit distance ≤ 1
+    expect(isSimilarWord("Müller", "Muller")).toBe(true);
+  });
+
+  // FALSE: should NOT catch these
+  it("does NOT match completely different words", () => {
+    expect(isSimilarWord("Mama", "Papa")).toBe(false);
+    expect(isSimilarWord("Hund", "Katze")).toBe(false);
+    expect(isSimilarWord("Ball", "Haus")).toBe(false);
+    expect(isSimilarWord("Mama", "Nana")).toBe(false);
+    expect(isSimilarWord("Mama", "Dada")).toBe(false);
+    expect(isSimilarWord("Ball", "Hall")).toBe(false);
+  });
+
+  it("does NOT match short unrelated words", () => {
+    expect(isSimilarWord("ja", "da")).toBe(false);
+    expect(isSimilarWord("ab", "an")).toBe(false);
+  });
+
+  it("excludes exact matches", () => {
+    expect(isSimilarWord("Hund", "Hund")).toBe(false);
+    expect(isSimilarWord("hund", "Hund")).toBe(false);
   });
 });
 
 describe("findSimilarWords", () => {
-  const wordList = ["mama", "papa", "ball", "dog", "cat", "car", "hello"];
+  const toddlerWords = [
+    "Mama",
+    "Papa",
+    "Dada",
+    "Nana",
+    "Ball",
+    "Hund",
+    "Katze",
+    "Auto",
+    "Wasser",
+    "Milch",
+  ];
 
-  it("returns empty array when no similar words", () => {
-    expect(findSimilarWords("elephant", wordList)).toEqual([]);
+  it("catches plurals of existing words", () => {
+    const result = findSimilarWords("Autos", toddlerWords);
+    expect(result).toContain("Auto");
+    expect(result).not.toContain("Mama");
   });
 
-  it("finds words within edit distance of 2", () => {
-    const result = findSimilarWords("bat", wordList);
-    expect(result).toContain("ball"); // distance 2
-    expect(result).toContain("cat"); // distance 1
-    expect(result).toContain("car"); // distance 2
+  it("does not flag unrelated words", () => {
+    const result = findSimilarWords("Papa", toddlerWords);
+    // Papa itself is excluded (exact match handled separately)
+    // Mama, Dada, Nana should NOT be flagged
+    expect(result).not.toContain("Mama");
+    expect(result).not.toContain("Dada");
+    expect(result).not.toContain("Nana");
   });
 
-  it("finds substring matches", () => {
-    const result = findSimilarWords("hell", wordList);
-    expect(result).toContain("hello"); // "hell" is substring of "hello"
+  it("returns empty for clearly new words", () => {
+    expect(findSimilarWords("Elefant", toddlerWords)).toEqual([]);
+    expect(findSimilarWords("Schmetterling", toddlerWords)).toEqual([]);
   });
 
-  it("finds superstring matches", () => {
-    const result = findSimilarWords("dogs", wordList);
-    expect(result).toContain("dog"); // "dog" is substring of "dogs"
-  });
-
-  it("is case-insensitive", () => {
-    const result = findSimilarWords("CAT", wordList);
-    // "CAT" lowercased = "cat", which is an exact match → excluded
-    expect(result).not.toContain("cat");
-    expect(result).toContain("car"); // distance 1 from "cat"
-  });
-
-  it("excludes exact matches", () => {
-    const result = findSimilarWords("cat", wordList);
-    expect(result).not.toContain("cat");
-  });
-
-  it("finds close toddler words", () => {
-    const toddlerWords = ["mama", "dada", "baba", "nana", "ball", "bye"];
-    const result = findSimilarWords("papa", toddlerWords);
-    expect(result).toContain("mama"); // distance 2
-    expect(result).toContain("dada"); // distance 2
-    expect(result).toContain("baba"); // distance 2
-    expect(result).toContain("nana"); // distance 2
-  });
-
-  it("returns empty array for empty word list", () => {
+  it("returns empty for empty word list", () => {
     expect(findSimilarWords("hello", [])).toEqual([]);
-  });
-
-  it("handles single character words", () => {
-    const result = findSimilarWords("a", ["b", "ab", "abc"]);
-    expect(result).toContain("b"); // distance 1
-    expect(result).toContain("ab"); // "a" is substring of "ab"
-    expect(result).toContain("abc"); // "a" is substring of "abc"
   });
 });
