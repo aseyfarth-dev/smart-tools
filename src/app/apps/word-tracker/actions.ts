@@ -3,6 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { findSimilarWords } from "./lib/fuzzy-match";
+import {
+  isGeminiEnabled,
+  geminiFilterSimilarWords,
+} from "./lib/gemini-match";
 
 export type AddWordResult = {
   success: boolean;
@@ -54,10 +58,16 @@ export async function addWord(
       .filter("word_normalized", "not.eq", normalized);
 
     if (fuzzyMatches && fuzzyMatches.length > 0) {
-      const similar = findSimilarWords(
+      // Stage 1: Rule-based matching (Cologne Phonetics + German stems + edit distance)
+      let similar = findSimilarWords(
         normalized,
         fuzzyMatches.map((m) => m.word)
       );
+
+      // Stage 2: If Gemini is enabled, use LLM to filter out false positives
+      if (similar.length > 0 && isGeminiEnabled()) {
+        similar = await geminiFilterSimilarWords(trimmed, similar);
+      }
 
       if (similar.length > 0) {
         return {
