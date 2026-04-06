@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/shell/logout-button";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
-import { MessageSquareText, TrendingUp, Users } from "lucide-react";
+import { MessageSquareText, TrendingUp, Users, Fuel } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,13 @@ const apps: {
     href: "/apps/poker-session",
     icon: Users,
     color: "text-amber-500",
+  },
+  {
+    name: "Tanken",
+    description: "Log refuel events & track consumption",
+    href: "/apps/tanken",
+    icon: Fuel,
+    color: "text-orange-500",
   },
 ];
 
