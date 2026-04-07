@@ -21,6 +21,11 @@ We will capture here all information around the architectural stack including al
 Important is to outline their exact purpose and role and how things work together cross functionally.
 
 
+##Security Rules##
+[ ] **NEVER read `.env.local` or any file containing secrets** (API keys, service account JSON, credentials). If env vars need to be added or changed, inform the user about the required key names and let them handle the values.
+[ ] Never log, echo, or include secret values in commands, code output, or conversation.
+[ ] Treat `.env.local.example` as the reference for which env vars exist — it contains placeholder values only, safe to read and update.
+
 ##Guiding Principles##
 [ ] Always start with creating a plan
 [ ] Ask if something is not clear and get back quickly in such a case
