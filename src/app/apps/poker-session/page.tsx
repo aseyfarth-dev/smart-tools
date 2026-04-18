@@ -131,6 +131,8 @@ export default async function PokerSessionPage() {
             sessionId={session.id}
             players={playersWithDetails}
             settlements={settlements}
+            sessionDate={session.created_at.split("T")[0]}
+            exportedToResults={session.exported_to_results ?? false}
           />
         </main>
       )}

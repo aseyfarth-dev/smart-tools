@@ -4,6 +4,7 @@ export interface LiveSession {
   status: "active" | "settled";
   created_at: string;
   settled_at: string | null;
+  exported_to_results: boolean;
 }
 
 export interface LiveSessionPlayer {

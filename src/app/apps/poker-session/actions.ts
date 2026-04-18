@@ -311,3 +311,82 @@ export async function toggleSettlementCompleted(
   revalidatePath(PATH);
   return { success: true };
 }
+
+// ============================================================
+// Export to Poker Results
+// ============================================================
+
+export async function pushToResults(
+  sessionId: string,
+  players: PlayerWithDetails[],
+  sessionDate: string // YYYY-MM-DD
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  // Verify all players have a net result
+  const playersWithResult = players.filter((p) => p.netResult !== null);
+  if (playersWithResult.length === 0) {
+    return { success: false, error: "No players have cashed out yet" };
+  }
+
+  // Check not already exported
+  const { data: session } = await supabase
+    .from("live_sessions")
+    .select("exported_to_results")
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!session) return { success: false, error: "Session not found" };
+  if (session.exported_to_results) {
+    return { success: false, error: "Session already exported to Results" };
+  }
+
+  // Insert into poker_sessions
+  const { data: pokerSession, error: sessionError } = await supabase
+    .from("poker_sessions")
+    .insert({ user_id: user.id, date: sessionDate })
+    .select("id")
+    .single();
+
+  if (sessionError || !pokerSession) {
+    return {
+      success: false,
+      error: sessionError?.message ?? "Failed to create results session",
+    };
+  }
+
+  // Bulk insert player results
+  const results = playersWithResult.map((p) => ({
+    session_id: pokerSession.id,
+    player_name: p.name,
+    amount: p.netResult as number,
+  }));
+
+  const { error: resultsError } = await supabase
+    .from("poker_results")
+    .insert(results);
+
+  if (resultsError) {
+    // Clean up the session on failure
+    await supabase.from("poker_sessions").delete().eq("id", pokerSession.id);
+    return { success: false, error: resultsError.message };
+  }
+
+  // Mark session as exported
+  const { error: flagError } = await supabase
+    .from("live_sessions")
+    .update({ exported_to_results: true })
+    .eq("id", sessionId)
+    .eq("user_id", user.id);
+
+  if (flagError) return { success: false, error: flagError.message };
+
+  revalidatePath(PATH);
+  revalidatePath("/apps/poker-results");
+  return { success: true };
+}
