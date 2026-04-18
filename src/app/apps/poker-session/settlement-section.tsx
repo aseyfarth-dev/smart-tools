@@ -17,6 +17,7 @@ import {
   generateSettlements,
   toggleSettlementCompleted,
   settleSession,
+  pushToResults,
 } from "./actions";
 import type {
   LiveSessionSettlement,
@@ -27,17 +28,23 @@ interface SettlementSectionProps {
   sessionId: string;
   players: PlayerWithDetails[];
   settlements: LiveSessionSettlement[];
+  sessionDate: string;
+  exportedToResults: boolean;
 }
 
 export function SettlementSection({
   sessionId,
   players,
   settlements,
+  sessionDate,
+  exportedToResults,
 }: SettlementSectionProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [newRoundOpen, setNewRoundOpen] = useState(false);
   const [endSessionOpen, setEndSessionOpen] = useState(false);
+  const [pushDialogOpen, setPushDialogOpen] = useState(false);
+  const [pushSuccess, setPushSuccess] = useState(exportedToResults);
 
   const allCashedOut =
     players.length > 0 &&
@@ -76,11 +83,26 @@ export function SettlementSection({
     });
   }
 
+  function handlePushToResults() {
+    startTransition(async () => {
+      const result = await pushToResults(sessionId, players, sessionDate);
+      if (result.success) {
+        setPushSuccess(true);
+        setPushDialogOpen(false);
+      } else {
+        setError(result.error ?? "Failed to push to Results");
+        setPushDialogOpen(false);
+      }
+    });
+  }
+
   const formatAmount = (val: number) =>
     val.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+
+  const playersWithResult = players.filter((p) => p.netResult !== null);
 
   return (
     <Card>
@@ -181,6 +203,72 @@ export function SettlementSection({
         )}
 
         {error && <p className="text-sm text-destructive">{error}</p>}
+
+        {/* Push to Results — available once all players have cashed out */}
+        {allCashedOut && (
+          <div className="border-t border-border pt-3">
+            {pushSuccess ? (
+              <p className="text-sm text-center text-green-600 dark:text-green-400 py-1">
+                ✓ Results exported to Poker Results
+              </p>
+            ) : (
+              <Dialog open={pushDialogOpen} onOpenChange={setPushDialogOpen}>
+                <DialogTrigger
+                  render={
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      disabled={isPending}
+                    />
+                  }
+                >
+                  Push to Poker Results
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Push to Poker Results?</DialogTitle>
+                    <DialogDescription>
+                      This will create a new session entry in Poker Results
+                      with the following player results. This action cannot be
+                      undone from here.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="my-2 rounded-lg border border-border p-3 flex flex-col gap-1">
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Date: {sessionDate}
+                    </p>
+                    {playersWithResult.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <span>{p.name}</span>
+                        <span
+                          className={`font-semibold tabular-nums ${
+                            (p.netResult ?? 0) >= 0
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-destructive"
+                          }`}
+                        >
+                          {(p.netResult ?? 0) >= 0 ? "+" : ""}
+                          {formatAmount(p.netResult ?? 0)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <DialogFooter>
+                    <DialogClose render={<Button variant="outline" />}>
+                      Cancel
+                    </DialogClose>
+                    <Button onClick={handlePushToResults} disabled={isPending}>
+                      {isPending ? "Exporting..." : "Confirm"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        )}
 
         {/* New Round — shown when all settlements are completed */}
         {allSettled && (
