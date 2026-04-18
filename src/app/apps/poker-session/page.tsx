@@ -27,13 +27,39 @@ export default async function PokerSessionPage() {
     redirect("/login");
   }
 
-  // Fetch active session
-  const { data: activeSession } = await supabase
-    .from("live_sessions")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
+  // Fetch active session + known player names in parallel
+  const [{ data: activeSession }, resultsNamesRes, sessionNamesRes] =
+    await Promise.all([
+      supabase
+        .from("live_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle(),
+      supabase.from("poker_results").select("player_name"),
+      supabase
+        .from("live_session_players")
+        .select("name, created_at")
+        .order("created_at", { ascending: false }),
+    ]);
+
+  // All known names, alphabetical — for autocomplete
+  const allNames = new Set<string>();
+  (resultsNamesRes.data ?? []).forEach((r) => allNames.add(r.player_name));
+  (sessionNamesRes.data ?? []).forEach((r) => allNames.add(r.name));
+  const knownPlayers = Array.from(allNames).sort((a, b) =>
+    a.localeCompare(b, "de")
+  );
+
+  // Recent players: up to 10 most-recently-seen unique names, sorted alphabetically
+  const recentSet = new Set<string>();
+  for (const r of sessionNamesRes.data ?? []) {
+    if (recentSet.size >= 10) break;
+    recentSet.add(r.name);
+  }
+  const recentPlayers = Array.from(recentSet).sort((a, b) =>
+    a.localeCompare(b, "de")
+  );
 
   const session = activeSession as LiveSession | null;
 
@@ -124,7 +150,12 @@ export default async function PokerSessionPage() {
         <SessionStarter />
       ) : (
         <main className="flex-1 p-4 max-w-lg mx-auto w-full flex flex-col gap-4 pb-8">
-          <PlayerManagement sessionId={session.id} players={players} />
+          <PlayerManagement
+            sessionId={session.id}
+            players={players}
+            knownPlayers={knownPlayers}
+            recentPlayers={recentPlayers}
+          />
           <BuyinTracking players={playersWithDetails} />
           <CashoutSection players={playersWithDetails} />
           <SettlementSection
