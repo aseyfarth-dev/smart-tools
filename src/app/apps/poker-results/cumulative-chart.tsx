@@ -190,7 +190,7 @@ export function CumulativeChart({ sessions }: CumulativeChartProps) {
           <XAxis dataKey="date" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
           <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `€${v}`} />
           <Tooltip
-            formatter={(value: number, name: string) => [formatCurrency(value), name]}
+            formatter={(value, name) => [formatCurrency(Number(value)), String(name)]}
             contentStyle={{
               backgroundColor: "hsl(var(--popover))",
               border: "1px solid hsl(var(--border))",
@@ -213,14 +213,14 @@ export function CumulativeChart({ sessions }: CumulativeChartProps) {
                 hide={isHidden}
                 label={
                   showEndLabels && !isHidden
-                    ? (props: { x?: number; y?: number; index?: number }) => {
+                    ? (props: { x?: number | string; y?: number | string; index?: number }) => {
                         if (props.index !== lastIndex)
                           return <g key={`empty-${props.index}`} />;
                         return (
                           <text
                             key={`endlabel-${name}`}
-                            x={(props.x ?? 0) + 8}
-                            y={props.y ?? 0}
+                            x={Number(props.x ?? 0) + 8}
+                            y={Number(props.y ?? 0)}
                             fill={color}
                             fontSize={10}
                             dominantBaseline="middle"
